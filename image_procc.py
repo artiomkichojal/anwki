@@ -202,10 +202,21 @@ def rotate(filename):
 
 	img = cv2.imread(filename + '.jpg',0)
 	rows,cols = img.shape
-
+	img/2
 	M = cv2.getRotationMatrix2D((cols/2,rows/2),angle,1)
 	dst = cv2.warpAffine(img,M,(cols,rows))
 	cv2.imwrite(filename + "_rot.jpg",dst)
-rotate("02_nib2")
+def translate(filename):
+
+	img = cv2.imread(filename + '.jpg',0)
+	rows,cols = img.shape
+	print rows,cols
+	newimage = np.empty((rows,cols))
+	for i in xrange(rows):
+		for j in xrange(cols):
+			newimage[i][(j+150)%cols] = img[i][j]
+	cv2.imwrite(filename + "_transl.jpg",newimage)
+translate("02_nib2")
+#rotate("02_nib2")
 #niblack2("25")
 
