@@ -202,7 +202,6 @@ def rotate(filename):
 
 	img = cv2.imread(filename + '.jpg',0)
 	rows,cols = img.shape
-	img/2
 	M = cv2.getRotationMatrix2D((cols/2,rows/2),angle,1)
 	dst = cv2.warpAffine(img,M,(cols,rows))
 	cv2.imwrite(filename + "_rot.jpg",dst)
