@@ -4,6 +4,8 @@ import sys
 import numpy as np
 import cv2
 import math as m
+import matplotlib.pyplot as plt
+
 
 
 
@@ -205,17 +207,56 @@ def rotate(filename):
 	M = cv2.getRotationMatrix2D((cols/2,rows/2),angle,1)
 	dst = cv2.warpAffine(img,M,(cols,rows))
 	cv2.imwrite(filename + "_rot.jpg",dst)
+
+def rotateManuell(filename):
+	delta_y = 656 - 619.2
+	delta_x = 212.2 - 440.6
+	angle =  m.atan(delta_y / delta_x)
+
+	img = cv2.imread(filename + '.jpg',0)
+	rows,cols = img.shape
+	rot_matr = np.array([[np.cos(angle),-np.sin(angle),0],
+						[np.sin(angle),np.cos(angle),0],
+						[0,0,1]])
+	#print np.dot(rot_matr,np.array([0,0,1]))
+	newimage = np.empty((rows,cols))
+	for i in xrange(rows):
+		for j in xrange(cols):
+			temp = np.dot(rot_matr,np.array([i,j,1]))
+			newimage[temp[0]%rows][temp[1]%cols] = img[i][j]
+	cv2.imwrite(filename + "_rotM.jpg",newimage)
 def translate(filename):
 
 	img = cv2.imread(filename + '.jpg',0)
 	rows,cols = img.shape
-	print rows,cols
+	
 	newimage = np.empty((rows,cols))
 	for i in xrange(rows):
 		for j in xrange(cols):
 			newimage[i][(j+150)%cols] = img[i][j]
 	cv2.imwrite(filename + "_transl.jpg",newimage)
-translate("02_nib2")
-#rotate("02_nib2")
-#niblack2("25")
+#translate("02_nib2")
 
+def normalize(filename):
+
+	img = cv2.imread(filename + '.jpg',0)
+	rows,cols = img.shape
+	print rows,cols
+	pts1 = np.float32([[66,429],[1656,540],[69,1821],[1413,2127]])
+	pts2 = np.float32([[0,0],[rows,0],[0,cols],[rows,cols]])
+	count = 0
+	for i in range(8,rows-8):
+		for j in range(8,cols-8):
+			if (img[i][j] < 255 and img[i][j] > 0):
+				count+=1
+	print count
+	M = cv2.getPerspectiveTransform(pts1,pts2)
+
+	dst = cv2.warpPerspective(img,M,(rows,cols))
+	plt.subplot(122),plt.imshow(dst),plt.title('Output')
+	#plt.show()
+	cv2.imwrite(filename + "_norm.jpg",dst)
+#normalize("02_sauv2")
+#rotate("02_nib2")
+#sauvola2("02")
+rotateManuell("02")
