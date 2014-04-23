@@ -183,8 +183,7 @@ def solveDLT(pts_vector1,pts_vector2):
 	a = np.array([[-x_0,-y_0,-1,0,0,0,x_new_0*x_0,x_new_0*y_0,x_new_0],
 					[0,0,0,-x_0,-y_0,-1,y_new_0*x_0,y_new_0*y_0,y_new_0]])
 	#a = np.empty((2,))
-	print a
-	for i in range(1,4):
+	for i in range(1,3):
 		print i
 		x_i = pts_vector1[i][0]
 		y_i = pts_vector1[i][1]
@@ -195,8 +194,10 @@ def solveDLT(pts_vector1,pts_vector2):
 		a = np.vstack([a,x_row])
 
 		a = np.vstack([a,y_row])
-		print a
+		#print a
 	print a
+	b = np.array([0,0,0,0,0,0,0,0])
+	return np.linalg.lstsq(a,b)[0]
 solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
 	np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
 
