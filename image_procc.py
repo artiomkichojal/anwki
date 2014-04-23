@@ -7,116 +7,12 @@ import math as m
 import matplotlib.pyplot as plt
 
 
-
-
 def imgToGray(filename):
 	image = cv2.imread(filename+'.jpg')
 	# print "processing picture to gray"
 	# cv2.imwrite(filename + '_g.jpg',np.mean(image,axis=2))
 	# print "to Gray ready"
 	return np.mean(image,axis=2)
-"""
-binarisierungsfunktion nach niblack
-"""
-def niblack(filename):
-	# image = imgToGray(filename) #make gray picture
-	# image = cv2.imread(filename + '_g.jpg')# graues bild einlesen	
-	image = imgToGray(filename)
-	print "processing picture niblack..."
-		
-	fn_w = 0
-	fn_h = 0
-	counter = 0
-	while (fn_h+1)*15 < image.shape[1]:	
-		while (fn_w+1)*15 < image.shape[0]:	
-			
-			x0 = fn_w*15
-			x1 = (fn_w+1)*15
-			y0 = fn_h*15
-			y1 = (fn_h+1)*15
-			
-			#15x15 pixel großes fenster
-			fenster = image[x0:x1,y0:y1] 
-			treshold = np.mean(fenster) - 0.2*np.std(fenster) #treshold nach niblack
-			
-			#faerbe jeden pixel in schwarz oder weiss um
-			fenster[fenster<treshold] = 0
-			fenster[fenster>treshold] = 255
-			fn_w += 1
-		fn_w = 0
-		fn_h += 1
-		
-	cv2.imwrite(filename + '_nib.jpg',image) #in bild schreiben
-	print "to niblack ready"
-
-"""
-binarisierungsfunktion nach sauvola
-"""
-def sauvola(filename):
-	#imgToGray(filename) #make gray picture
-	# image = cv2.imread(filename + '.jpg')# graues bild  einlesen	
-	# image = np.mean(image,axis = 2)
-	image = imgToGray(filename)
-	print "processing picture sauvola..."	
-	fn_w = 0
-	fn_h = 0
-
-	while (fn_h+1)*15 < image.shape[1]:	
-		while (fn_w+1)*15 < image.shape[0]:	
-			
-			x0 = fn_w*15
-			x1 = (fn_w+1)*15
-			y0 = fn_h*15
-			y1 = (fn_h+1)*15
-			
-			#15x15 pixel großes fenster
-			fenster = image[x0:x1,y0:y1] 
-			treshold = np.mean(fenster) *(1+0.2*(np.std(fenster)/128 - 1)) #treshold nach sauvola
-			
-			#faerbe jeden pixel in schwarz oder weiss um
-			fenster[fenster<treshold] = 0
-			fenster[fenster>treshold] = 255
-			fn_w += 1
-		fn_w = 0
-		fn_h += 1
-		
-	cv2.imwrite(filename + '_sauv.jpg',image) #in bild schreiben
-	print "to sauvola ready"	
-
-"""
-binarisierungsfunktion nach nick
-"""
-def nick_my(filename):
-	# imgToGray(filename) #make gray picture
-	# image = cv2.imread(filename + '_g.jpg')# graues bild  einlesen
-	image = imgToGray(filename)	
-	print "processing picture nick..."	
-	fn_w = 0
-	fn_h = 0
-	while (fn_h+1)*15 < image.shape[1]:	
-		while (fn_w+1)*15 < image.shape[0]:	
-			
-			x0 = fn_w*15
-			x1 = (fn_w+1)*15
-			y0 = fn_h*15
-			y1 = (fn_h+1)*15
-			
-			#15x15 pixel großes fenster
-			fenster = image[x0:x1,y0:y1] 
-			m = np.mean(fenster)
-			b = np.sum(fenster**2) - m**2
-			wurzel = np.sqrt(b/(15*15))
-			treshold = m - 0.1 * wurzel  #treshold nach nick
-			
-			
-			#faerbe jeden pixel in schwarz oder weiss um
-			fenster[fenster<treshold] = 0
-			fenster[fenster>treshold] = 255
-			fn_w += 1
-		fn_w = 0
-		fn_h += 1
-	cv2.imwrite(filename + '_nick.jpg',image) #in bild schreiben
-	print "to nick ready"
 
 def nick(filename):
 	image = cv2.imread(filename + '.jpg')
@@ -140,32 +36,34 @@ def nick(filename):
 	print "to nick ready"
 	
 """
-create image with resolution width x height
+create image with width
 """
-def resizeIm(filename,x_dim):
+def resizeIm(filename,width):
 	oriimage = cv2.imread(filename + '.jpg')
-	if x_dim < oriimage.shape[1]:
-		faktor = float(float(x_dim)/float(oriimage.shape[1]))
+	if width < oriimage.shape[1]:
+		faktor = float(float(width)/float(oriimage.shape[1]))
 		newimage = cv2.resize(oriimage,(0,0),fx=faktor, fy=faktor)
 		cv2.imwrite(filename + '_res.jpg',newimage)
 		return True
 	return False
-#resizeIm("34", 1024, 800)
-#nick("01")
-
+"""
+gibt integralmatrix zurueck
+"""
 def integralBild(data_image):
 	return np.cumsum(np.cumsum(data_image,axis=0),axis=1)
 
 def niblack2(filename):
+	#verkleinere bild bis breite = 600, falls bildbreite groesser als 600
+	#und erstelle graues bild
 	if resizeIm(filename, 600):
 		gray_im = imgToGray(filename+"_res")
 	else:
 		gray_im = imgToGray(filename)
 	cum_sum = integralBild(gray_im)
+	#initialise result matrix
 	newimage = np.empty((gray_im.shape[0],gray_im.shape[1]))
 	for i in range(8,gray_im.shape[0] - 7):
 		for j in range(8,gray_im.shape[1] - 7):
-			#print gray_im[i-7:i+7,j-7:j+7]
 			mean = (cum_sum[i-7][j-7] + cum_sum[i+7][j+7]  - cum_sum[i+7][j-7] - cum_sum[i-7][j+7])/(14*14)
 			std = np.std(gray_im[i-7:i+7,j-7:j+7])
 			treshhold = mean - 0.2*std
@@ -176,7 +74,9 @@ def niblack2(filename):
 				newimage[i][j] = 0
 	cv2.imwrite(filename + '_nib2.jpg',newimage)
 def sauvola2(filename):
-	if resizeIm(filename, 800):
+	#verkleinere bild bis breite = 600, falls bildbreite groesser als 600
+	#und erstelle graues bild
+	if resizeIm(filename, 600):
 		gray_im = imgToGray(filename+"_res")
 	else:
 		gray_im = imgToGray(filename)
@@ -195,7 +95,6 @@ def sauvola2(filename):
 			else :
 				newimage[i][j] = 0
 	cv2.imwrite(filename + '_sauv2.jpg',newimage)
-#niblack("34_res")
 
 def rotate(filename):
 	delta_y = 656 - 619.2
@@ -223,8 +122,9 @@ def rotateManuell(filename):
 	for i in xrange(rows):
 		for j in xrange(cols):
 			temp = np.dot(rot_matr,np.array([i,j,1]))
-			newimage[temp[0]%rows][temp[1]%cols] = img[i][j]
-	cv2.imwrite(filename + "_rotM.jpg",newimage)
+			if temp[0] >= 0 and temp[1] >= 0 :
+				newimage[temp[0]%rows][temp[1]%cols] = img[i][j]			
+	cv2.imwrite(filename + "_rotM1.jpg",newimage)
 def translate(filename):
 
 	img = cv2.imread(filename + '.jpg',0)
@@ -237,26 +137,70 @@ def translate(filename):
 	cv2.imwrite(filename + "_transl.jpg",newimage)
 #translate("02_nib2")
 
-def normalize(filename):
-
-	img = cv2.imread(filename + '.jpg',0)
+"""
+transformiert das bild per homographie
+"""
+def transformHomography(filename):
+	img = cv2.imread(filename + '.png',0)
 	rows,cols = img.shape
 	print rows,cols
-	pts1 = np.float32([[66,429],[1656,540],[69,1821],[1413,2127]])
-	pts2 = np.float32([[0,0],[rows,0],[0,cols],[rows,cols]])
-	count = 0
-	for i in range(8,rows-8):
-		for j in range(8,cols-8):
-			if (img[i][j] < 255 and img[i][j] > 0):
-				count+=1
-	print count
+	pts1 = np.float32([[429,66],[540,1656],[1821,69],[2127,1413]])
+	pts2 = np.float32([[0,0],[0,rows],[cols,0],[cols,rows]])
+	#pts2 = np.float32([[0,0],[1590,0],[0,1400],[1590,1400]])
+
 	M = cv2.getPerspectiveTransform(pts1,pts2)
 
-	dst = cv2.warpPerspective(img,M,(rows,cols))
+	dst = cv2.warpPerspective(img,M,(cols,rows))
 	plt.subplot(122),plt.imshow(dst),plt.title('Output')
 	#plt.show()
-	cv2.imwrite(filename + "_norm.jpg",dst)
-#normalize("02_sauv2")
+	cv2.imwrite(filename + "_norm.png",dst)
+transformHomography("02")
 #rotate("02_nib2")
 #sauvola2("02")
-rotateManuell("02")
+#rotateManuell("02_sauv2")
+"""
+pts_vector1 =  4 ecken start
+pts_vector2 = 4 ecken finish
+"""
+def solveDLT(pts_vector1,pts_vector2):
+	# h = np.array([[-429,-66,-1,0,0,0,0,0,0],
+	# 				[-540,-1656,-1,0,0,0,0,0,0],
+	# 				[-1821,-69,-1,0,0,0,1821*2592,2592*69,2592],
+	# 				[-2127,1413,-1,0,0,0,1728*2127,2127*25921,1728],
+	# 				[0,0,0,0,0,-1,0,0,0],
+	# 				[0,0,0,0,-1728,-1,1728*540,1728*1656,1728],
+	# 				[0,0,0,-2592,0,-1,0,0,0],
+	# 				[0,0,0,-1728,-2592,-1,2592*2127,2592*1413,2592]])
+	# b = np.array([0,0,0,0,0,0,0,0])
+	# print b.shape
+	# print np.linalg.lstsq(h,b)[0]
+
+	#8x9 matrix (9 unbekannten <- h11 ... h33)
+	x_0 = pts_vector1[0][0]
+	y_0 = pts_vector1[0][1]
+	x_new_0 = pts_vector2[0][0]
+	y_new_0 = pts_vector2[0][1]
+	a = np.array([[-x_0,-y_0,-1,0,0,0,x_new_0*x_0,x_new_0*y_0,x_new_0],
+					[0,0,0,-x_0,-y_0,-1,y_new_0*x_0,y_new_0*y_0,y_new_0]])
+	#a = np.empty((2,))
+	print a
+	for i in range(1,4):
+		print i
+		x_i = pts_vector1[i][0]
+		y_i = pts_vector1[i][1]
+		x_new_i = pts_vector2[i][0]
+		y_new_i = pts_vector2[i][1]
+		x_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i,x_new_i])
+		y_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i,x_new_i])
+		a = np.vstack([a,x_row])
+
+		a = np.vstack([a,y_row])
+		print a
+	print a
+solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
+	np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
+
+a = np.array([[3,1], [1,2]])
+b = np.array([0,0])
+#print np.linalg.lstsq(a, b)
+
