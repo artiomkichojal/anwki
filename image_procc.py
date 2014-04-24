@@ -55,17 +55,18 @@ def integralBild(data_image):
 def niblack2(filename):
 	#verkleinere bild bis breite = 600, falls bildbreite groesser als 600
 	#und erstelle graues bild
-	if resizeIm(filename, 600):
+	if resizeIm(filename, 800):
 		gray_im = imgToGray(filename+"_res")
 	else:
 		gray_im = imgToGray(filename)
 	cum_sum = integralBild(gray_im)
 	#initialise result matrix
 	newimage = np.empty((gray_im.shape[0],gray_im.shape[1]))
-	for i in range(8,gray_im.shape[0] - 7):
-		for j in range(8,gray_im.shape[1] - 7):
-			mean = (cum_sum[i-7][j-7] + cum_sum[i+7][j+7]  - cum_sum[i+7][j-7] - cum_sum[i-7][j+7])/(14*14)
-			std = np.std(gray_im[i-7:i+7,j-7:j+7])
+	for i in range(8,gray_im.shape[0] - 8):
+		for j in range(8,gray_im.shape[1] - 8):
+			#print gray_im[i-7:i+8,j-7:j+8].shape
+			mean = (cum_sum[i-7][j-7] + cum_sum[i+8][j+8]  - cum_sum[i+8][j-7] - cum_sum[i-7][j+8])/225
+			std = np.std(gray_im[i-7:i+8,j-7:j+8])
 			treshhold = mean - 0.2*std
 			#print "mean: ", mean, " std: ",std
 			if gray_im[i][j] > treshhold:
@@ -85,9 +86,9 @@ def sauvola2(filename):
 	newimage = np.empty((gray_im.shape[0],gray_im.shape[1]))
 	for i in range(8,gray_im.shape[0] - 8):
 		for j in range(8,gray_im.shape[1] - 8):
-			#print gray_im[i-7:i+7,j-7:j+7]
-			mean = (cum_sum[i-7][j-7] + cum_sum[i+7][j+7]  - cum_sum[i+7][j-7] - cum_sum[i-7][j+7])/(225)
-			std = np.std(gray_im[i-7:i+7,j-7:j+7])
+			#print gray_im[i-7:i+8,j-7:j+8].shape
+			mean = (cum_sum[i-7][j-7] + cum_sum[i+8][j+8]  - cum_sum[i+8][j-7] - cum_sum[i-7][j+8])/225
+			std = np.std(gray_im[i-7:i+8,j-7:j+8])
 			treshhold = mean *(1+0.2*(std/128 - 1))
 			#print "mean: ", mean, " std: ",std
 			if gray_im[i][j] > treshhold:
@@ -145,22 +146,22 @@ def transformHomography(filename):
 	rows,cols = img.shape
 	print rows,cols
 	pts1 = np.float32([[429,66],[540,1656],[1821,69],[2127,1413]])
-	pts2 = np.float32([[0,0],[0,rows],[cols,0],[cols,rows]])
+	pts2 = np.float32([[0,0],[0,cols],[cols,0],[cols,cols]])
 	#pts2 = np.float32([[0,0],[1590,0],[0,1400],[1590,1400]])
 
 	M = cv2.getPerspectiveTransform(pts1,pts2)
 
-	dst = cv2.warpPerspective(img,M,(cols,rows))
+	dst = cv2.warpPerspective(img,M,(cols,cols))
 	plt.subplot(122),plt.imshow(dst),plt.title('Output')
 	#plt.show()
 	cv2.imwrite(filename + "_norm.png",dst)
 transformHomography("02")
 #rotate("02_nib2")
-#sauvola2("02")
+sauvola2("02")
 #rotateManuell("02_sauv2")
 """
-pts_vector1 =  4 ecken start
-pts_vector2 = 4 ecken finish
+pts_vector1 =  4 ecken source
+pts_vector2 = 4 ecken dest
 """
 def solveDLT(pts_vector1,pts_vector2):
 	# h = np.array([[-429,-66,-1,0,0,0,0,0,0],
@@ -183,23 +184,21 @@ def solveDLT(pts_vector1,pts_vector2):
 	a = np.array([[-x_0,-y_0,-1,0,0,0,x_new_0*x_0,x_new_0*y_0,x_new_0],
 					[0,0,0,-x_0,-y_0,-1,y_new_0*x_0,y_new_0*y_0,y_new_0]])
 	#a = np.empty((2,))
-	for i in range(1,3):
-		print i
+	for i in range(1,4):
 		x_i = pts_vector1[i][0]
 		y_i = pts_vector1[i][1]
 		x_new_i = pts_vector2[i][0]
 		y_new_i = pts_vector2[i][1]
 		x_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i,x_new_i])
-		y_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i,x_new_i])
+		y_row = np.array([0,0,0,-x_i,-y_i,-1,y_new_i*x_i,y_new_i*y_i,y_new_i])
 		a = np.vstack([a,x_row])
-
 		a = np.vstack([a,y_row])
 		#print a
 	print a
 	b = np.array([0,0,0,0,0,0,0,0])
 	return np.linalg.lstsq(a,b)[0]
-solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
-	np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
+#print solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
+	#np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
 
 a = np.array([[3,1], [1,2]])
 b = np.array([0,0])
