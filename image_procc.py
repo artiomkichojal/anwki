@@ -51,8 +51,8 @@ gibt integralmatrix zurueck
 """
 def integralBild(data_image):
 	return np.cumsum(np.cumsum(data_image,axis=0),axis=1)
-
-def niblack2(filename):
+#04,19 beste ergebnisse fuer 00.jpg
+def niblack(filename,k,window_length):
 	#verkleinere bild bis breite = 600, falls bildbreite groesser als 600
 	#und erstelle graues bild
 	if resizeIm(filename, 800):
@@ -60,43 +60,53 @@ def niblack2(filename):
 	else:
 		gray_im = imgToGray(filename)
 	cum_sum = integralBild(gray_im)
+	print "niblack started"
 	#initialise result matrix
 	newimage = np.empty((gray_im.shape[0],gray_im.shape[1]))
-	for i in range(8,gray_im.shape[0] - 8):
-		for j in range(8,gray_im.shape[1] - 8):
-			#print gray_im[i-7:i+8,j-7:j+8].shape
-			mean = (cum_sum[i-7][j-7] + cum_sum[i+8][j+8]  - cum_sum[i+8][j-7] - cum_sum[i-7][j+8])/225
-			std = np.std(gray_im[i-7:i+8,j-7:j+8])
-			treshhold = mean - 0.2*std
+	for i in range((window_length/2),gray_im.shape[0] - (window_length/2)):
+		for j in range((window_length/2),gray_im.shape[1] - (window_length/2)):
+			#print gray_im[i-7:i+(window_length/2),j-7:j+(window_length/2)].shape
+			mean = (cum_sum[i-(window_length/2)][j-(window_length/2)] + cum_sum[i+(window_length/2)][j+(window_length/2)]  - cum_sum[i+(window_length/2)][j-(window_length/2)] - cum_sum[i-(window_length/2)][j+(window_length/2)])/(window_length**2)
+			std = np.std(gray_im[i-(window_length/2):i+(window_length/2),j-(window_length/2):j+(window_length/2)])
+			treshhold = mean - k*std
 			#print "mean: ", mean, " std: ",std
 			if gray_im[i][j] > treshhold:
 				newimage[i][j] = 255
 			else :
 				newimage[i][j] = 0
-	cv2.imwrite(filename + '_nib2.jpg',newimage)
-def sauvola2(filename):
+	cv2.imwrite("test/" + filename + "_"+ str(k)+'_'+ str(window_length) +'_nib.jpg',newimage)
+def drange(start, stop, step):
+	r = start
+	while r < stop:
+		yield r
+		r += step
+
+#01,19 beste ergebnisse fuer 00.jpg
+def sauvola(filename,k,window_length):
+	print "sauvola started"
 	#verkleinere bild bis breite = 600, falls bildbreite groesser als 600
 	#und erstelle graues bild
-	if resizeIm(filename, 600):
+	if resizeIm(filename, 800):
 		gray_im = imgToGray(filename+"_res")
 	else:
 		gray_im = imgToGray(filename)
 	cum_sum = integralBild(gray_im)
 
 	newimage = np.empty((gray_im.shape[0],gray_im.shape[1]))
-	for i in range(8,gray_im.shape[0] - 8):
-		for j in range(8,gray_im.shape[1] - 8):
-			#print gray_im[i-7:i+8,j-7:j+8].shape
-			mean = (cum_sum[i-7][j-7] + cum_sum[i+8][j+8]  - cum_sum[i+8][j-7] - cum_sum[i-7][j+8])/225
-			std = np.std(gray_im[i-7:i+8,j-7:j+8])
-			treshhold = mean *(1+0.2*(std/128 - 1))
+	for i in range((window_length/2),gray_im.shape[0] - (window_length/2)):
+		for j in range((window_length/2),gray_im.shape[1] - (window_length/2)):
+			#print gray_im[i-7:i+(window_length/2),j-7:j+(window_length/2)].shape
+			mean = (cum_sum[i-(window_length/2)][j-(window_length/2)] + cum_sum[i+(window_length/2)][j+(window_length/2)]  - cum_sum[i+(window_length/2)][j-(window_length/2)] - cum_sum[i-(window_length/2)][j+(window_length/2)])/(window_length**2)
+			std = np.std(gray_im[i-(window_length/2):i+(window_length/2),j-(window_length/2):j+(window_length/2)])
+			treshhold = mean *(1+k*(std/128 - 1))
 			#print "mean: ", mean, " std: ",std
 			if gray_im[i][j] > treshhold:
 				newimage[i][j] = 255
 			else :
 				newimage[i][j] = 0
-	cv2.imwrite(filename + '_sauv2.jpg',newimage)
-
+	cv2.imwrite("test/" + filename + "_"+ str(k)+'_'+ str(window_length) +'_sauv.jpg',newimage)
+for x in drange(0,1,0.1):
+	sauvola("00", x, 19)
 def rotate(filename):
 	delta_y = 656 - 619.2
 	delta_x = 212.2 - 440.6
@@ -150,14 +160,14 @@ def transformHomography(filename):
 	#pts2 = np.float32([[0,0],[1590,0],[0,1400],[1590,1400]])
 
 	M = cv2.getPerspectiveTransform(pts1,pts2)
-
+	print M
 	dst = cv2.warpPerspective(img,M,(cols,cols))
 	plt.subplot(122),plt.imshow(dst),plt.title('Output')
 	#plt.show()
-	cv2.imwrite(filename + "_norm.png",dst)
-transformHomography("02")
+	cv2.imwrite(filename + "_norm.jpg",dst)
+#transformHomography("02")
 #rotate("02_nib2")
-sauvola2("02")
+#sauvola2("02")
 #rotateManuell("02_sauv2")
 """
 pts_vector1 =  4 ecken source
@@ -181,24 +191,24 @@ def solveDLT(pts_vector1,pts_vector2):
 	y_0 = pts_vector1[0][1]
 	x_new_0 = pts_vector2[0][0]
 	y_new_0 = pts_vector2[0][1]
-	a = np.array([[-x_0,-y_0,-1,0,0,0,x_new_0*x_0,x_new_0*y_0,x_new_0],
-					[0,0,0,-x_0,-y_0,-1,y_new_0*x_0,y_new_0*y_0,y_new_0]])
-	#a = np.empty((2,))
-	for i in range(1,4):
+
+	a = np.empty((8,8))
+	for i in range(0,4):
 		x_i = pts_vector1[i][0]
 		y_i = pts_vector1[i][1]
 		x_new_i = pts_vector2[i][0]
 		y_new_i = pts_vector2[i][1]
-		x_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i,x_new_i])
-		y_row = np.array([0,0,0,-x_i,-y_i,-1,y_new_i*x_i,y_new_i*y_i,y_new_i])
-		a = np.vstack([a,x_row])
-		a = np.vstack([a,y_row])
+		x_row = np.array([-x_0,-y_0,-1,0,0,0,x_new_i*x_i,x_new_i*y_i])
+		y_row = np.array([0,0,0,-x_i,-y_i,-1,y_new_i*x_i,y_new_i*y_i])
+		a[i*2] = x_row
+		a[i*2 + 1] = y_row
 		#print a
-	print a
-	b = np.array([0,0,0,0,0,0,0,0])
+	#print a
+	b = np.array([0,0,0,-1728,-2592,0,-1728,-2592])
 	return np.linalg.lstsq(a,b)[0]
-#print solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
-	#np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
+print solveDLT(np.float32([[429,66],[540,1656],[1821,69],[2127,1413]]),
+	np.float32([[0,0],[0,1728],[2592,0],[2592,1728]]))
+
 
 a = np.array([[3,1], [1,2]])
 b = np.array([0,0])
